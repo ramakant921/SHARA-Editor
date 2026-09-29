@@ -1,0 +1,21 @@
+{
+  "name": "shara-editor",
+  "version": "1.0.0",
+  "description": "A Vim-inspired terminal text editor built with Node.js",
+  "main": "src/editor.js",
+  "bin": {
+    "shara": "./bin/shara.js"
+  },
+  "scripts": {
+    "start": "node src/editor.js"
+  },
+  "keywords": [
+    "editor",
+    "vim",
+    "terminal",
+    "cli",
+    "nodejs"
+  ],
+  "author": "spodormon",
+  "license": "MIT"
+}
