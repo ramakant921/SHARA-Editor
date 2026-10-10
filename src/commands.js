@@ -46,6 +46,4 @@ function execute(editor, command) {
     }
 }
 
-module.exports = {
-    execute
-};
+export default execute;

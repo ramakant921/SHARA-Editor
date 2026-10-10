@@ -1,4 +1,4 @@
-const fs = require("fs");
+import fs from "node:fs"
 
 class Buffer {
     constructor(fileName) {
@@ -82,4 +82,4 @@ class Buffer {
     }
 }
 
-module.exports = Buffer;
+export default Buffer

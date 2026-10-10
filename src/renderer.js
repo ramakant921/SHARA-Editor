@@ -1,4 +1,4 @@
-const terminal = require("./terminal");
+import * as terminal from "./terminal.js"
 
 const RESET = "\x1b[0m";
 const CYAN = "\x1b[36m";
@@ -108,4 +108,4 @@ class Renderer {
     }
 }
 
-module.exports = Renderer;
+export default Renderer
