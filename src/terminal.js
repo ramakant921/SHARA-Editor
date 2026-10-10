@@ -46,7 +46,7 @@ function size() {
     };
 }
 
-module.exports = {
+export {
     setup,
     restore,
     clear,
