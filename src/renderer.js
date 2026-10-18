@@ -1,110 +1,142 @@
+import highlight from "./highlighter.js"
 import * as terminal from "./terminal.js"
 
-const RESET = "\x1b[0m";
-const CYAN = "\x1b[36m";
-const BLUE = "\x1b[34m";
-const WHITE = "\x1b[37m";
-const BLACK = "\x1b[30m";
-const YELLOW = "\x1b[33m";
+const RESET = "\x1b[0m"
+const GREEN = "\x1b[38;5;154m"
+const DIM = "\x1b[38;5;245m"
+const WHITE = "\x1b[38;5;252m"
+const MUTED = "\x1b[38;5;240m"
+const YELLOW = "\x1b[38;5;221m"
+const BG = "\x1b[48;5;236m"
+const MODE_BG = "\x1b[48;5;154m"
+const DARK = "\x1b[38;5;232m"
 
 class Renderer {
     constructor(editor) {
-        this.editor = editor;
+        this.editor = editor
     }
 
     draw() {
-        const editor = this.editor;
-        const { rows, columns } = terminal.size();
+        const editor = this.editor
+        const { rows, columns } = terminal.size()
+        const visibleRows = Math.max(1, rows - 3)
 
-        terminal.clear();
-        terminal.hideCursor();
+        terminal.clear()
+        terminal.hideCursor()
 
-        const visibleRows = Math.max(1, rows - 2);
-
-        this.drawHeader(columns);
+        this.drawHeader(columns)
 
         for (let screenRow = 0; screenRow < visibleRows; screenRow++) {
-            const fileRow = editor.scrollY + screenRow;
+            const fileRow = editor.scrollY + screenRow
 
             if (fileRow >= editor.buffer.lineCount()) {
-                terminal.write("~\n");
-                continue;
+                terminal.moveTo(screenRow + 2, 1)
+                terminal.write(`${MUTED}  ~${RESET}`)
+                continue
             }
 
-            this.drawLine(fileRow, columns);
+            this.drawLine(fileRow, screenRow, columns)
         }
 
-        this.drawStatus(columns);
+        this.drawStatus(columns)
+        this.drawFooter(columns)
+        this.positionCursor()
 
-        this.positionCursor();
-        terminal.showCursor();
+        terminal.showCursor()
     }
 
     drawHeader(columns) {
-        const editor = this.editor;
+        const editor = this.editor
+        const fileName = editor.buffer.fileName || "[No Name]"
+        const modified = editor.buffer.modified ? " ●" : ""
+        const title = `  SHARA ${DIM}›${RESET} ${WHITE}${fileName}${RESET}${YELLOW}${modified}${RESET}`
+        const label = " NODE.JS EDITOR "
 
-        let title = ` SHARA-Editor  ${editor.buffer.fileName || "[No Name]"}`;
+        terminal.moveTo(1, 1)
+        terminal.write(
+            `${BG}${GREEN}  SHARA-Editor  ${RESET}${BG}${DIM}│${RESET}${BG}${WHITE} ${fileName}${modified} ${RESET}`
+        )
 
-        if (editor.buffer.modified) {
-            title += " [+]";
-        }
-
-        title = title.padEnd(columns, "─").slice(0, columns);
-
-        terminal.write(`${CYAN}${title}${RESET}\n`);
-    }
-
-    drawLine(row, columns) {
-        const editor = this.editor;
-        const line = editor.buffer.getLine(row);
-
-        const number = String(row + 1).padStart(4, " ");
-
-        let visibleLine = line;
-
-        if (visibleLine.length > columns - 7) {
-            visibleLine = visibleLine.slice(0, columns - 7);
-        }
+        const used = 20 + fileName.length + modified.length
+        const remaining = Math.max(0, columns - used - label.length)
 
         terminal.write(
-            `${BLUE}${number}${RESET} │ ${WHITE}${visibleLine}${RESET}\n`
-        );
+            `${BG}${MUTED}${"─".repeat(remaining)}${RESET}${DIM}${label}${RESET}\n`
+        )
+    }
+
+    drawLine(row, screenRow, columns) {
+        const editor = this.editor
+        const line = editor.buffer.getLine(row)
+        const numberWidth = Math.max(4, String(editor.buffer.lineCount()).length)
+        const number = String(row + 1).padStart(numberWidth, " ")
+        const lineWidth = Math.max(0, columns - numberWidth - 4)
+        const visibleLine = highlight(line.slice(0, lineWidth))
+        const current = row === editor.y
+
+        terminal.moveTo(screenRow + 2, 1)
+
+        const numberColor = current ? GREEN : MUTED
+        const marker = current ? `${GREEN}›${RESET}` : " "
+
+        terminal.write(
+            `${marker}${numberColor}${number}${RESET} ${DIM}│${RESET} ${WHITE}${visibleLine}${RESET}`
+        )
     }
 
     drawStatus(columns) {
-        const editor = this.editor;
+        const editor = this.editor
+        const { rows } = terminal.size()
 
-        let left = "";
+        let modeColor = GREEN
+        let mode = editor.mode
 
-        if (editor.mode === "COMMAND") {
-            left = `:${editor.command}`;
-        } else if (editor.mode === "SEARCH") {
-            left = `/${editor.searchTerm}`;
-        } else {
-            left = ` ${editor.mode}`;
+        if (mode === "INSERT") {
+            modeColor = "\x1b[38;5;81m"
+        } else if (mode === "COMMAND" || mode === "SEARCH") {
+            modeColor = YELLOW
         }
 
-        const right =
-            `Ln ${editor.y + 1}, Col ${editor.x + 1}`;
+        let left = ` ${mode} `
 
-        const spaces = Math.max(
-            1,
-            columns - left.length - right.length
-        );
+        if (mode === "COMMAND") {
+            left += `:${editor.command}`
+        } else if (mode === "SEARCH") {
+            left += `/${editor.searchTerm}`
+        }
 
-        const status =
-            `${YELLOW}${left}${" ".repeat(spaces)}${right}${RESET}`;
+        const right = `Ln ${editor.y + 1}, Col ${editor.x + 1} `
+        const gap = Math.max(1, columns - left.length - right.length)
 
-        terminal.write(status.slice(0, columns));
+        terminal.moveTo(rows - 1, 1)
+        terminal.write(
+            `${modeColor}${left}${RESET}${BG}${" ".repeat(gap)}${DIM}${right}${RESET}`
+        )
+    }
+
+    drawFooter(columns) {
+        const { rows } = terminal.size()
+        const text = "  h j k l  Move   i  Insert   :w  Save   :q  Quit   /  Search"
+        const footer = text.slice(0, columns).padEnd(columns, " ")
+
+        terminal.moveTo(rows, 1)
+        terminal.write(`${DIM}${footer}${RESET}`)
     }
 
     positionCursor() {
-        const editor = this.editor;
+        const editor = this.editor
+        const { rows, columns } = terminal.size()
+        const visibleRows = Math.max(1, rows - 3)
 
-        const screenY = editor.y - editor.scrollY + 2;
-        const screenX = editor.x + 8;
+        const screenY = editor.y - editor.scrollY + 2
+        const screenX = editor.x + 7
 
-        terminal.moveTo(screenY, screenX);
+        if (screenY >= 2 && screenY < visibleRows + 2) {
+            terminal.moveTo(
+                screenY,
+                Math.min(screenX, columns)
+            )
+        }
     }
 }
 

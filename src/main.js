@@ -184,7 +184,7 @@ class Editor {
   updateScroll() {
     const { rows } = terminal.size();
 
-    const visibleRows = Math.max(1, rows - 2);
+    const visibleRows = Math.max(1, rows - 3);
 
     if (this.y < this.scrollY) {
       this.scrollY = this.y;
