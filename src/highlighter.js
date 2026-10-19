@@ -6,6 +6,7 @@ const ORANGE = "\x1b[38;5;209m"
 const BLUE = "\x1b[38;5;111m"
 const GRAY = "\x1b[38;5;244m"
 const CYAN = "\x1b[38;5;116m"
+const YELLOW = "\x1b[38;5;221m"
 
 const keywords = new Set([
     "const", "let", "var", "function", "return",
@@ -19,44 +20,96 @@ const keywords = new Set([
 ])
 
 function highlight(line) {
-    const pattern =
-        /(\/\/.*|\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*\b)/g
+    let result = ""
+    let i = 0
 
-    return line.replace(pattern, (token, _, offset) => {
-        const previous = line.slice(0, offset)
-        const inComment = previous.lastIndexOf("//") >
-            Math.max(previous.lastIndexOf('"'), previous.lastIndexOf("'"))
+    while (i < line.length) {
+        const char = line[i]
+        const next = line[i + 1]
 
-        if (token.startsWith("//") || token.startsWith("/*")) {
-            return `${GRAY}${token}${RESET}`
+        if (char === "/" && next === "/") {
+            result += `${GRAY}${line.slice(i)}${RESET}`
+            break
         }
 
-        if (
-            token.startsWith('"') ||
-            token.startsWith("'") ||
-            token.startsWith("`")
-        ) {
-            return `${GREEN}${token}${RESET}`
+        if (char === "/" && next === "*") {
+            const end = line.indexOf("*/", i + 2)
+            const stop = end === -1 ? line.length : end + 2
+
+            result += `${GRAY}${line.slice(i, stop)}${RESET}`
+            i = stop
+            continue
         }
 
-        if (/^\d/.test(token)) {
-            return `${ORANGE}${token}${RESET}`
+        if (char === '"' || char === "'" || char === "`") {
+            let end = i + 1
+
+            while (end < line.length) {
+                if (line[end] === "\\") {
+                    end += 2
+                    continue
+                }
+
+                if (line[end] === char) {
+                    end++
+                    break
+                }
+
+                end++
+            }
+
+            result += `${GREEN}${line.slice(i, end)}${RESET}`
+            i = end
+            continue
         }
 
-        if (keywords.has(token)) {
-            return `${PURPLE}${token}${RESET}`
+        if (/[0-9]/.test(char)) {
+            let end = i + 1
+
+            while (end < line.length && /[0-9.]/.test(line[end])) {
+                end++
+            }
+
+            result += `${ORANGE}${line.slice(i, end)}${RESET}`
+            i = end
+            continue
         }
 
-        if (/^[A-Z]/.test(token)) {
-            return `${CYAN}${token}${RESET}`
+        if (/[A-Za-z_$]/.test(char)) {
+            let end = i + 1
+
+            while (end < line.length && /[\w$]/.test(line[end])) {
+                end++
+            }
+
+            const word = line.slice(i, end)
+            const following = line.slice(end).trimStart()
+
+            if (keywords.has(word)) {
+                result += `${PURPLE}${word}${RESET}`
+            } else if (following.startsWith("(")) {
+                result += `${BLUE}${word}${RESET}`
+            } else if (/^[A-Z]/.test(word)) {
+                result += `${CYAN}${word}${RESET}`
+            } else {
+                result += word
+            }
+
+            i = end
+            continue
         }
 
-        if (/\w/.test(token) && /\($/.test(line.slice(offset + token.length, offset + token.length + 1))) {
-            return `${BLUE}${token}${RESET}`
+        if ("=+-*/%<>!&|?:".includes(char)) {
+            result += `${YELLOW}${char}${RESET}`
+            i++
+            continue
         }
 
-        return token
-    })
+        result += char
+        i++
+    }
+
+    return result
 }
 
 export default highlight

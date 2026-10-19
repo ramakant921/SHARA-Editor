@@ -1,5 +1,6 @@
 import highlight from "./highlighter.js"
 import * as terminal from "./terminal.js"
+import detectLanguage from "./language.js"
 
 const RESET = "\x1b[0m"
 const GREEN = "\x1b[38;5;154m"
@@ -71,7 +72,8 @@ class Renderer {
         const numberWidth = Math.max(4, String(editor.buffer.lineCount()).length)
         const number = String(row + 1).padStart(numberWidth, " ")
         const lineWidth = Math.max(0, columns - numberWidth - 4)
-        const visibleLine = highlight(line.slice(0, lineWidth))
+        const language = detectLanguage(editor.buffer.fileName)
+        const visibleLine = highlight(line.slice(0, lineWidth), language)
         const current = row === editor.y
 
         terminal.moveTo(screenRow + 2, 1)
