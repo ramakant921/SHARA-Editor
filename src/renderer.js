@@ -27,6 +27,15 @@ class Renderer {
 
         this.drawHeader(columns)
 
+        const language = detectLanguage(editor.buffer.fileName)
+
+        const highlightState = {
+            inBlockComment: false,
+            inTemplate: false,
+            inHTMLComment: false,
+            inCSSComment: false
+        }
+
         for (let screenRow = 0; screenRow < visibleRows; screenRow++) {
             const fileRow = editor.scrollY + screenRow
 
@@ -36,7 +45,7 @@ class Renderer {
                 continue
             }
 
-            this.drawLine(fileRow, screenRow, columns)
+            this.drawLine(fileRow, screenRow, columns, language, highlightState)
         }
 
         this.drawStatus(columns)
@@ -66,14 +75,17 @@ class Renderer {
         )
     }
 
-    drawLine(row, screenRow, columns) {
+    drawLine(row, screenRow, columns, language, highlightState) {
         const editor = this.editor
         const line = editor.buffer.getLine(row)
         const numberWidth = Math.max(4, String(editor.buffer.lineCount()).length)
         const number = String(row + 1).padStart(numberWidth, " ")
         const lineWidth = Math.max(0, columns - numberWidth - 4)
-        const language = detectLanguage(editor.buffer.fileName)
-        const visibleLine = highlight(line.slice(0, lineWidth), language)
+        const visibleLine = highlight(
+            line.slice(0, lineWidth),
+            language,
+            highlightState
+        )
         const current = row === editor.y
 
         terminal.moveTo(screenRow + 2, 1)
@@ -131,7 +143,7 @@ class Renderer {
         const visibleRows = Math.max(1, rows - 3)
 
         const screenY = editor.y - editor.scrollY + 2
-        const screenX = editor.x + 7
+        const screenX = editor.x + 9
 
         if (screenY >= 2 && screenY < visibleRows + 2) {
             terminal.moveTo(

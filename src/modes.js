@@ -51,6 +51,10 @@ class Modes {
       editor.moveDown();
     }
 
+    else if (key === "e") {
+      editor.openExplorer()
+    }
+
     else if (
       key === "\x1b[H" ||
       key === "\x1b[1~" ||
@@ -199,9 +203,13 @@ class Modes {
       return;
     }
 
-    if (key === "\u007f") {
+    if (key === "\u007f" || key === "\b") {
       editor.backspace();
+      return;
+    }
 
+    if (key === "\x1b[3~") {
+      editor.deleteCharacter();
       return;
     }
 

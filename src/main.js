@@ -4,6 +4,7 @@ import Modes from "./modes.js"
 import Renderer from "./renderer.js"
 import execute from "./commands.js"
 import * as terminal from "./terminal.js";
+import Explorer from "./explorer.js"
 
 const fileName = process.argv[2] || "";
 
@@ -25,6 +26,11 @@ class Editor {
     this.message = "";
     this.running = true;
     this.renderer = new Renderer(this);
+  }
+
+  openExplorer() {
+    this.explorer = new Explorer(this)
+    this.explorer.draw()
   }
 
   setMode(mode) {
@@ -72,7 +78,12 @@ class Editor {
     this.render();
 
     process.stdin.on("data", (key) => {
-      this.modes.handleKey(this, key);
+      if (this.explorer) {
+          this.explorer.handleKey(key)
+          return
+      }
+
+      this.modes.handleKey(this, key)
     });
   }
 
