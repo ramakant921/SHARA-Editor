@@ -159,21 +159,51 @@ class Explorer {
             this.selected = Math.max(0, this.selected - 1)
         } else if (key === "\x1b[B" || key === "j") {
             this.selected = Math.min(
-                this.entries.length - 1,
-                this.selected + 1
-            )
-        } else if (key === "\r" || key === "\n") {
+            this.entries.length - 1,
+            this.selected + 1
+        )
+        } else if (
+            key === "\r" || key === "\n" || key === "\r\n") {
             this.openSelected()
-            return
+
+            if(this.active){
+                this.updateScroll()
+                this.draw()
+            }
+
+        return
         } else if (key === "\x7f" || key === "\b") {
             this.currentPath = path.dirname(this.currentPath)
             this.selected = 0
             this.scrollY = 0
             this.loadEntries()
+        } else if (key === "d") {
+            this.createDirectory()
+            return
         }
 
         this.updateScroll()
         this.draw()
+    }
+
+    createDirectory() {
+        const name = this.editor.prompt("Directory name:")
+
+        if (!name || !name.trim()) {
+            return
+        }
+
+        const directoryPath = path.join(this.currentPath, name.trim())
+
+        try {
+            fs.mkdirSync(directoryPath)
+            this.loadEntries()
+            this.updateScroll()
+            this.draw()
+        } catch (error) {
+            this.editor.message = `Cannot create directory: ${error.message}`
+            this.draw()
+        }
     }
 }
 
